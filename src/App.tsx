@@ -15,6 +15,7 @@ interface IState {
  * It renders title, button and Graph react element.
  */
 class App extends Component<{}, IState> {
+  intervalId: NodeJS.Timeout | null;
   constructor(props: {}) {
     super(props);
 
@@ -23,6 +24,7 @@ class App extends Component<{}, IState> {
       // We use this state to parse data down to the child element (Graph) as element property
       data: [],
     };
+    this.intervalId = null;
   }
 
   /**
@@ -39,8 +41,32 @@ class App extends Component<{}, IState> {
     DataStreamer.getData((serverResponds: ServerRespond[]) => {
       // Update the state by creating a new array of data that consists of
       // Previous data in the state and the new data from server
+      console.log(serverResponds); // TODO: Nothing's logging for some reason and it's not streaming data
       this.setState({ data: [...this.state.data, ...serverResponds] });
     });
+  }
+
+  /**
+   * Start streaming data from server
+   */
+  startStreamingData() {
+    // Get data from server
+    console.log(new Date().toISOString() + ': Starting to stream data...')
+    console.log(this.intervalId)
+    if (this.intervalId == null) {
+      this.intervalId = setInterval(() => {
+        this.getDataFromServer();
+      }, 100);
+    }
+  }
+
+  /*
+  * We should clear the interval in `componentWillUnmount`: to ensure that no more calls to the interval callback are made once the component has been removed from the UI. If you set an interval inside a component and the component gets unmounted, the interval callback may still run because it was scheduled by the JavaScript engine, not by React itself. If the callback tries to update the state of the unmounted component, you will get an error because you cannot update the state of a component that's not in the DOM
+  */
+  componentWillUnmount() {
+    if (this.intervalId) {
+      clearInterval(this.intervalId);
+    }
   }
 
   /**
@@ -59,7 +85,7 @@ class App extends Component<{}, IState> {
             // As part of your task, update the getDataFromServer() function
             // to keep requesting the data every 100ms until the app is closed
             // or the server does not return anymore data.
-            onClick={() => {this.getDataFromServer()}}>
+            onClick={() => {this.startStreamingData()}}>
             Start Streaming Data
           </button>
           <div className="Graph">
